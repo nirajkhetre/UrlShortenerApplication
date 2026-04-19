@@ -1,6 +1,6 @@
 package in.avaloneco.UrlShortenerApplication.impl;
 
-import in.avaloneco.UrlShortenerApplication.config.Base62Encoder;
+import in.avaloneco.UrlShortenerApplication.algoritham.ShortCodeGenerator;
 import in.avaloneco.UrlShortenerApplication.dto.UrlMappingDto;
 import in.avaloneco.UrlShortenerApplication.entity.UrlMapping;
 import in.avaloneco.UrlShortenerApplication.repository.UrlMappingRepository;
@@ -44,21 +44,40 @@ public class UrlShortenerServiceImpl implements UrlShortenerService {
             throw new IllegalArgumentException("Invalid URL: " + originalUrl);
         }
 
+        //duplication check
+
+        Optional<UrlMapping> existing = urlMappingRepository.findByOriginalUrl(originalUrl);
+        if (existing.isPresent()){
+            return existing.get().getShortCode();
+        }
+
+        String shortCode;
+        int attempt = 0;
+        do {
+            String input = (attempt == 0) ? originalUrl : originalUrl + attempt;
+            shortCode = ShortCodeGenerator.generate(input);
+            attempt++;
+        }while (urlMappingRepository.findByShortCode(shortCode).isPresent());
+
+
 
         //save to db/get auto increment
         UrlMappingDto urlMapping = new UrlMappingDto();
         urlMapping.setOriginalUrl(originalUrl);
+        urlMapping.setShortCode(shortCode);
         urlMapping.setCreatedAt(Instant.now());
         UrlMapping urlMapping1 =urlMappingRepository.save(modelMapper.map(urlMapping, UrlMapping.class));
 
-        //Base62 encode id to get shortcode
-        String shortCode = Base62Encoder.encode(urlMapping1.getId());
+//        //Base62 encode id to get shortcode
+//        String shortCode = Base62Encoder.encode(urlMapping1.getId());
 
-        //save shortCode back to entity
-        urlMapping1.setShortCode(shortCode);
-        urlMappingRepository.save(urlMapping1);
+//        //save shortCode back to entity
+//        urlMapping1.setShortCode(shortCode);
+//        urlMappingRepository.save(urlMapping1);
 
-        redisTemplate.opsForValue().set(shortCode, originalUrl, 24, java.util.concurrent.TimeUnit.HOURS);
+        redisTemplate
+                .opsForValue()
+                .set(shortCode, originalUrl, 24, java.util.concurrent.TimeUnit.HOURS);
 
 
         return shortCode;

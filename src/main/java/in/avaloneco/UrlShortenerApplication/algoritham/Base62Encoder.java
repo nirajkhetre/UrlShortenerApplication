@@ -1,4 +1,4 @@
-package in.avaloneco.UrlShortenerApplication.config;
+package in.avaloneco.UrlShortenerApplication.algoritham;
 
 public class Base62Encoder {
     private static final String BASE62 = "0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ";
